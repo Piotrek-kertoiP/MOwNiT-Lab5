@@ -15,7 +15,6 @@
 #define VERBOSE 1
 long double lagrangeCoefficients [NodesAmount];
 double newtonCoefficients  [NodesAmount ];
-double gslCoefficients [NodesAmount];
 FILE * resultFile;
 FILE * timesFile;
 //-------------------------------------------------------------------------------------NODES GENERATOR------------------------------------------------------------------------------------
@@ -35,7 +34,7 @@ void randNodes(double* x ,double* y ){
 
 }
 //-------------------------------------------------------------------------------------GSL INTERPOLATION----------------------------------------------------------------------------------
-void gslInterpolation(double* x, double* y, int stepsPerGap ){
+void gslInterpolation(double* x, double* y, int stepsPerGap){
     double tmpX, tmpY, h;
     // interpolation
     {
@@ -58,7 +57,7 @@ void gslInterpolation(double* x, double* y, int stepsPerGap ){
     }
 }
 //------------------------------------------------------------------------------------SPLINE INTERPOLATION-------------------------------------------------------------------------------
-void gsl_spline_interpol(double* x, double* y, int stepsPerGap ){
+void gslSplineInterpolation(double* x, double* y, int stepsPerGap ){
     double tmpX, tmpY, h;
     // interpolation
     {
@@ -81,7 +80,7 @@ void gsl_spline_interpol(double* x, double* y, int stepsPerGap ){
     }
 }
 //-----------------------------------------------------------------------------------LAGRANGE INTERPOLATION-------------------------------------------------------------------------------
-void getLagrangeCoeffs(double* x, double* y){
+void getLagrangeCoefficients(double* x, double* y){
     // c[] are the coefficients of P(x) = (x-x[0])(x-x[1])...(x-x[n-1])
     long double c[NodesAmount+1];
     for (int i = 0; i < NodesAmount; i++){
@@ -153,7 +152,7 @@ void lagrangeInterpolation(double x[],double y[],int stepsPerGap)
     }
 }
 //-----------------------------------------------------------------------------------NEWTON INTERPOLATION--------------------------------------------------------------------------------
-void getNetwonCoeffs(double* x, double* y){
+void getNetwonCoefficients(double* x, double* y){
     double newtonCoeffs [NodesAmount-1][NodesAmount-1];
 
     // zero table
@@ -285,13 +284,13 @@ int main (){
                 
     for( int j = 0; j < REPETITIONS; j++){
         gettimeofday(&lagrangeTimeStart, NULL);
-        getLagrangeCoeffs(x,y);
+        getLagrangeCoefficients(x,y);
         lagrangeInterpolation(x,y,InterNodeGap);
         gettimeofday(&lagrangeTimeEnd, NULL);
         double lagrange = convertToDouble(lagrangeTimeStart, lagrangeTimeEnd);
 
         gettimeofday(&newtonTimeStart, NULL);
-        getNetwonCoeffs(x,y);
+        getNetwonCoefficients(x,y);
         newtonInterpolation(x,y,InterNodeGap);
         gettimeofday(&newtonTimeEnd, NULL);
         double newton = convertToDouble(newtonTimeStart, newtonTimeEnd);
@@ -302,7 +301,7 @@ int main (){
         double gsl = convertToDouble(gslTimeStart, gslTimeEnd);
 
         gettimeofday(&splineTimeStart, NULL);
-        gsl_spline_interpol(x,y,InterNodeGap);
+        gslSplineInterpolation(x,y,InterNodeGap);
         gettimeofday(&splineTimeEnd, NULL);
         double spline = convertToDouble(splineTimeStart, splineTimeEnd);
 
