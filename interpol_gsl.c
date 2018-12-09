@@ -31,6 +31,7 @@ void randNodes(double* x ,double* y ){
         x[i+1] = x[i] + InterNodeGap;
         y[i+1] = doubleRandRange(-100, 100);
     }
+
 }
 //-------------------------------------------------------------------------------------GSL INTERPOLATION----------------------------------------------------------------------------------
 void gslInterpolation(double* x, double* y, int stepsPerGap){
@@ -151,7 +152,7 @@ void lagrangeInterpolation(double x[],double y[],int stepsPerGap)
     }
 }
 //-----------------------------------------------------------------------------------NEWTON INTERPOLATION--------------------------------------------------------------------------------
-void getNetwonCoefficients(double* x, double* y){
+void getNewtonCoefficients(double* x, double* y){
     double newtonCoeffs [NodesAmount-1][NodesAmount-1];
 
     // zero table
@@ -289,7 +290,7 @@ int main (){
         double lagrange = convertToDouble(lagrangeTimeStart, lagrangeTimeEnd);
 
         gettimeofday(&newtonTimeStart, NULL);
-        getNetwonCoefficients(x,y);
+        getNewtonCoefficients(x,y);
         newtonInterpolation(x,y,InterNodeGap);
         gettimeofday(&newtonTimeEnd, NULL);
         double newton = convertToDouble(newtonTimeStart, newtonTimeEnd);
