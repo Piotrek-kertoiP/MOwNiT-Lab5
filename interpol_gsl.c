@@ -15,112 +15,98 @@
 #define VERBOSE 1
 long double lagrangeCoefficients [NodesAmount];
 double newtonCoefficients  [NodesAmount ];
-double gsl_coefficients [NodesAmount];
+double gslCoefficients [NodesAmount];
 FILE * resultFile;
-FILE * times_file;
-
-double double_rand_range(double min_n, double max_n)
-{
-    return (double)rand()/RAND_MAX * (max_n - min_n) + min_n;
+FILE * timesFile;
+//-------------------------------------------------------------------------------------NODES GENERATOR------------------------------------------------------------------------------------
+double doubleRandRange(double minN, double maxN){
+    return (double)rand()/RAND_MAX * (maxN - minN) + minN;
 }
 
-void rand_nodes(double x [] ,double y [] )
-{
-    int i;
+void randNodes(double* x ,double* y ){
     srand(time(NULL));
-    x[0]=0;
-    y[0]=double_rand_range(-100,100);
-    for ( i = 0; i < NodesAmount - 1; i++)
+    x[0] = 0.0;
+    y[0] = doubleRandRange(-100, 100);
+    for ( int i = 0; i < NodesAmount - 1; i++)
     {
         x[i+1] = x[i] + InterNodeGap;
-        y[i+1] = double_rand_range(-100,100);
+        y[i+1] = doubleRandRange(-100, 100);
     }
 
 }
-
-void gsl_polym_interpol(double x [] ,double y [],int step )
-{
-    int i;
-    double h;
-    double xtmp,ytmp;
+//-------------------------------------------------------------------------------------GSL INTERPOLATION----------------------------------------------------------------------------------
+void gslInterpolation(double* x, double* y, int stepsPerGap ){
+    double tmpX, tmpY, h;
     // interpolation
     {
         gsl_interp_accel *acc = gsl_interp_accel_alloc ();
         gsl_interp * workspace = gsl_interp_alloc(gsl_interp_polynomial, NodesAmount);
 
         gsl_interp_init(workspace, x, y, NodesAmount);
-        h = (x[1]-x[0]) / step;
-        for(i = 0; i <= (step *(NodesAmount-1)); i++)
+        h = (x[1]-x[0]) / stepsPerGap;
+        for(int i = 0; i <= (stepsPerGap *(NodesAmount-1)); i++)
         {
-            xtmp = x[0] + h *i;
-            ytmp = gsl_interp_eval(workspace, x, y, xtmp, acc);
+            tmpX = x[0] + h * i;
+            tmpY = gsl_interp_eval(workspace, x, y, tmpX, acc);
             if( VERBOSE )
-                printf("GSL,%lf,%lf \n", xtmp,ytmp);
-            fprintf(resultFile,"GSL,%lf,%lf \n", xtmp,ytmp);
+                printf("GSL,%lf,%lf \n", tmpX, tmpY);
+            fprintf(resultFile,"GSL,%lf,%lf \n", tmpX, tmpY);
         }
 
         gsl_interp_free (workspace);
         gsl_interp_accel_free (acc);
     }
 }
-
-void gsl_spline_interpol(double x [] ,double y [],int step )
-{
-    int i;
-    double h;
-    double xtmp,ytmp;
+//------------------------------------------------------------------------------------SPLINE INTERPOLATION-------------------------------------------------------------------------------
+void gsl_spline_interpol(double* x, double* y, int stepsPerGap ){
+    double tmpX, tmpY, h;
     // interpolation
     {
         gsl_interp_accel *acc = gsl_interp_accel_alloc ();
         gsl_spline * workspace = gsl_spline_alloc(gsl_interp_cspline, NodesAmount);
 
         gsl_spline_init(workspace, x, y, NodesAmount);
-        h = (x[1]-x[0])/step;
-        for(i = 0; i <= (step*(NodesAmount-1)); i++)
+        h = (x[1]-x[0])/stepsPerGap;
+        for(int i = 0; i <= (stepsPerGap*(NodesAmount-1)); i++)
         {
-            xtmp = x[0] + h *i;
-            ytmp = gsl_spline_eval(workspace, xtmp, acc);
+            tmpX = x[0] + h * i;
+            tmpY = gsl_spline_eval(workspace, tmpX, acc);
             if( VERBOSE )
-                printf("Spline,%lf,%lf \n", xtmp,ytmp);
-            fprintf(resultFile,"Spline,%lf,%lf \n", xtmp,ytmp);
+                printf("Spline,%lf,%lf \n", tmpX, tmpY);
+            fprintf(resultFile,"Spline,%lf,%lf \n", tmpX, tmpY);
         }
 
         gsl_spline_free (workspace);
         gsl_interp_accel_free (acc);
     }
 }
-
-// LaGrange init
-void getLagrangeCoeffs(double x[],double y[])  {
-    int i,j,k;
+//-----------------------------------------------------------------------------------LAGRANGE INTERPOLATION-------------------------------------------------------------------------------
+void getLagrangeCoeffs(double* x, double* y){
     // c[] are the coefficients of P(x) = (x-x[0])(x-x[1])...(x-x[n-1])
     long double c[NodesAmount+1];
-    for (i=0;i<NodesAmount;i++)
-    {
+    for (int i = 0; i < NodesAmount; i++){
         lagrangeCoefficients[i] = 0.0;
     }
     c[0] = 1.0;
-    for ( i = 0; i < NodesAmount; i++)
-    {
-        for ( j = i; j > 0; j--)
-        {
+    for ( int i = 0; i < NodesAmount; i++){
+        for ( int j = i; j > 0; j--){
             c[j] = c[j-1] - c[j] * x[i];
         }
         c[0] *= -x[i];
         c[i+1] = 1;
     }
     long double tc[NodesAmount+1];
-    for ( i = 0; i < NodesAmount; i++) {
+    for ( int i = 0; i < NodesAmount; i++) {
         // d = (x[i]-x[0])...(x[i]-x[i-1])(x[i]-x[i+1])...(x[i]-x[n-1])
         long double d = 1.0;
-        for ( j = 0; j < NodesAmount; j++) {
+        for ( int j = 0; j < NodesAmount; j++) {
             if (i != j) {
                 d *= (x[i] - x[j]);
             }
         }
         if (d == 0.0) {
             // This happens only when two abscissas are identical.
-            for ( k = 0; k < NodesAmount; ++k) {
+            for ( int k = 0; k < NodesAmount; k++) {
                 if ((i != k) && (x[i] == x[k])) {
                     printf("LocalizedFormats.IDENTICAL_ABSCISSAS_DIVISION_BY_ZERO,%d %d %lf",i, k, x[i]);
                     exit(-1);
@@ -135,46 +121,13 @@ void getLagrangeCoeffs(double x[],double y[])  {
         // numerator Pi(x) = (x-x[0])...(x-x[i-1])(x-x[i+1])...(x-x[n-1]).
         tc[NodesAmount-1] = c[NodesAmount];     // actually c[n] = 1
         lagrangeCoefficients[NodesAmount-1] += t * tc[NodesAmount-1];
-        for ( j = NodesAmount-2; j >= 0; j--) {
+        for ( int j = NodesAmount-2; j >= 0; j--) {
             tc[j] = c[j+1] + tc[j+1] * x[i];
             lagrangeCoefficients[j] += (t * tc[j]);
         }
     }
     return;
 }
-
-void getNetwonCoeffs(double x[],double y[])  {
-    //  ilorazy roznicowe nie cala jest potrzebna, tylko  polowa
-    double newton_coeffs [NodesAmount-1][NodesAmount-1];
-    int i,j;
-
-    // zero table
-    for (i=0;i<(NodesAmount-1);i++)
-        for (j=0;j<(NodesAmount-1);j++)
-            newton_coeffs[i][j]=0;
-
-    // first columns
-    for (i=0;i<(NodesAmount-1);i++)
-        newton_coeffs[0][i]=(y[i+1]-y[i])/(x[i+1]-x[i]);
-
-
-    for (i=1;i<(NodesAmount-1);i++)
-    {
-        int counter=0;
-        for(j=(NodesAmount-2-i);j>=0;j--)
-        {
-            newton_coeffs[i][j]=(newton_coeffs[i-1][j+1]-newton_coeffs[i-1][j])/(x[(NodesAmount-1-counter)]-x[(NodesAmount-2-i-counter)]  );
-            counter++;
-        }
-    }
-
-    newtonCoefficients[ 0  ]=y[0];
-    for (i=1;i<NodesAmount;i++)
-    {
-        newtonCoefficients[ i ]=newton_coeffs[i-1][0];
-    }
-}
-
 double lagrangePolynomialValue(long double* coefficients, int numberOfCoefficients, long double x)
 {
     long double result = 0.0;
@@ -186,7 +139,7 @@ double lagrangePolynomialValue(long double* coefficients, int numberOfCoefficien
     return result;
 }
 
-void lagrangeInterpol(double x[],double y[],int stepsPerGap)
+void lagrangeInterpolation(double x[],double y[],int stepsPerGap)
 {
     long double tmpX, tmpY, h;
     h = (x[1]-x[0]) / stepsPerGap;
@@ -199,7 +152,35 @@ void lagrangeInterpol(double x[],double y[],int stepsPerGap)
         fprintf(resultFile,"Lagrange,%Lf,%Lf \n", tmpX, tmpY);
     }
 }
+//-----------------------------------------------------------------------------------NEWTON INTERPOLATION--------------------------------------------------------------------------------
+void getNetwonCoeffs(double* x, double* y){
+    double newtonCoeffs [NodesAmount-1][NodesAmount-1];
 
+    // zero table
+    for (int i = 0; i < (NodesAmount-1); i++){
+        for (int j = 0; j < (NodesAmount-1); j++){
+            newtonCoeffs[i][j] = 0;
+        }
+    }
+
+    // first columns
+    for (int i = 0; i < (NodesAmount-1); i++){
+        newtonCoeffs[0][i] = (y[i+1] - y[i]) / (x[i+1] - x[i]);
+    }
+
+    for (int i = 1; i < (NodesAmount-1); i++){
+        int counter = 0;
+        for(int j = (NodesAmount-2-i); j >= 0; j--){
+            newtonCoeffs[i][j] = (newtonCoeffs[i-1][j+1] - newtonCoeffs[i-1][j]) / (x[(NodesAmount-1-counter)] - x[(NodesAmount-2-i-counter)]);
+            counter++;
+        }
+    }
+
+    newtonCoefficients[0] = y[0];
+    for (int i = 1; i < NodesAmount; i++){
+        newtonCoefficients[i] = newtonCoeffs[i-1][0];
+    }
+}
 double newtonPolynomialValue(double* coefficients, double* nodesX, int summandsAmount, double x)
 {
     double p = 1;
@@ -212,7 +193,7 @@ double newtonPolynomialValue(double* coefficients, double* nodesX, int summandsA
     return result;
 
 }
-void newtonInterpol(double* x, double* y, int stepsPerGap)
+void newtonInterpolation(double* x, double* y, int stepsPerGap)
 {
     double tmpX, tmpY, h;
     h = (x[1]-x[0]) / stepsPerGap;
@@ -225,36 +206,29 @@ void newtonInterpol(double* x, double* y, int stepsPerGap)
         fprintf(resultFile,"Newton,%lf, %lf \n", tmpX,tmpY);
     }
 }
-
-void gsl_akima_interpol(double x [] ,double y [],int step )
-{
-    int i;
-    double h;
-    double xtmp,ytmp;
+//------------------------------------------------------------------------------------AKIMA INTERPOLATION--------------------------------------------------------------------------------
+void gslAkimaInterpolation(double* x, double* y, int stepsPerGap){
+    double tmpX, tmpY, h;
     // interpolation
     {
         gsl_interp_accel *acc = gsl_interp_accel_alloc ();
         gsl_interp * workspace = gsl_interp_alloc(gsl_interp_akima, NodesAmount);
 
         gsl_interp_init(workspace, x, y, NodesAmount);
-        h = (x[1]-x[0])/step;
-        for(i = 0; i <= (step*(NodesAmount-1)); i++)
-        {
-            xtmp = x[0] + h *i;
-            ytmp = gsl_interp_eval(workspace, x, y, xtmp, acc);
+        h = (x[1]-x[0]) / stepsPerGap;
+        for(int i = 0; i <= (stepsPerGap*(NodesAmount-1)); i++){
+            tmpX = x[0] + h * i;
+            tmpY = gsl_interp_eval(workspace, x, y, tmpX, acc);
             if( VERBOSE )
-                printf("Akima,%lf,%lf \n", xtmp,ytmp);
-            fprintf(resultFile,"Akima,%lf,%lf \n", xtmp,ytmp);
+                printf("Akima,%lf,%lf \n", tmpX,tmpY);
+            fprintf(resultFile,"Akima,%lf,%lf \n", tmpX,tmpY);
         }
 
         gsl_interp_free (workspace);
         gsl_interp_accel_free (acc);
     }
-
 }
-
-
-//------------------------------------------TIME MEASUREMENT--------------------
+//--------------------------------------------------------------------------------------TIME MEASUREMENT---------------------------------------------------------------------------------
 struct timeval lagrangeTimeStart;
 struct timeval lagrangeTimeEnd;
 
@@ -275,32 +249,29 @@ double convertToDouble( struct timeval start, struct timeval end){
     elapsedTime += (end.tv_usec - start.tv_usec) / 1000.0;   // us to ms
     return elapsedTime;
 }
-//-------------------------------------------------------------------------SAVING TIMES TO FILE
+//------------------------------------------------------------------------------------SAVING TIMES TO FILE-------------------------------------------------------------------------------
 void saveTimesToFile(double lagrange, double newton, double gsl, double spline, double akima, int N){
-    fprintf(times_file, "%d, Lagrange, %f\n", N, lagrange);
-    fprintf(times_file, "%d, Newton, %f\n", N, newton);
-    fprintf(times_file, "%d, GSL, %f\n", N, gsl);
-    fprintf(times_file, "%d, Spline, %f\n", N, spline);
-    fprintf(times_file, "%d, Akima, %f\n", N, akima);
+    fprintf(timesFile, "%d, Lagrange, %f\n", N, lagrange);
+    fprintf(timesFile, "%d, Newton, %f\n", N, newton);
+    fprintf(timesFile, "%d, GSL, %f\n", N, gsl);
+    fprintf(timesFile, "%d, Spline, %f\n", N, spline);
+    fprintf(timesFile, "%d, Akima, %f\n", N, akima);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------MAIN----------------------------------------------------------------------------------------
 
-int main ()
-{
-    if  ((resultFile = fopen ("result.txt", "w")) == NULL )
-    {
+int main (){
+    if  ((resultFile = fopen ("result.txt", "w")) == NULL ){
         printf("Result file open error \n");
         exit(-1);
     }
-    if( (times_file = fopen ("times.txt", "a+")) == NULL)
-    {
+    if( (timesFile = fopen ("times.txt", "a+")) == NULL){
         printf("Times file open error \n");
         exit(-1);
     }
 
     double x[NodesAmount];
     double y[NodesAmount];
-    rand_nodes(x,y);
+    randNodes(x,y);
 
     if( VERBOSE )
         printf("alg,x,y \n");
@@ -315,18 +286,18 @@ int main ()
     for( int j = 0; j < REPETITIONS; j++){
         gettimeofday(&lagrangeTimeStart, NULL);
         getLagrangeCoeffs(x,y);
-        lagrangeInterpol(x,y,InterNodeGap);
+        lagrangeInterpolation(x,y,InterNodeGap);
         gettimeofday(&lagrangeTimeEnd, NULL);
         double lagrange = convertToDouble(lagrangeTimeStart, lagrangeTimeEnd);
 
         gettimeofday(&newtonTimeStart, NULL);
         getNetwonCoeffs(x,y);
-        newtonInterpol(x,y,InterNodeGap);
+        newtonInterpolation(x,y,InterNodeGap);
         gettimeofday(&newtonTimeEnd, NULL);
         double newton = convertToDouble(newtonTimeStart, newtonTimeEnd);
 
         gettimeofday(&gslTimeStart, NULL);
-        gsl_polym_interpol(x,y,InterNodeGap);
+        gslInterpolation(x,y,InterNodeGap);
         gettimeofday(&gslTimeEnd, NULL);
         double gsl = convertToDouble(gslTimeStart, gslTimeEnd);
 
@@ -336,7 +307,7 @@ int main ()
         double spline = convertToDouble(splineTimeStart, splineTimeEnd);
 
         gettimeofday(&akimaTimeStart, NULL);
-        gsl_akima_interpol(x,y,InterNodeGap);
+        gslAkimaInterpolation(x,y,InterNodeGap);
         gettimeofday(&akimaTimeEnd, NULL);
         double akima = convertToDouble(akimaTimeStart, akimaTimeEnd);
 
