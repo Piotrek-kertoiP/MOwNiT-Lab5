@@ -31,7 +31,6 @@ void randNodes(double* x ,double* y ){
         x[i+1] = x[i] + InterNodeGap;
         y[i+1] = doubleRandRange(-100, 100);
     }
-
 }
 //-------------------------------------------------------------------------------------GSL INTERPOLATION----------------------------------------------------------------------------------
 void gslInterpolation(double* x, double* y, int stepsPerGap){
@@ -127,8 +126,7 @@ void getLagrangeCoefficients(double* x, double* y){
     }
     return;
 }
-double lagrangePolynomialValue(long double* coefficients, int numberOfCoefficients, long double x)
-{
+double lagrangePolynomialValue(long double* coefficients, int numberOfCoefficients, long double x){
     long double result = 0.0;
 
     for(int i = numberOfCoefficients - 1; i >= 0; i--)
@@ -138,8 +136,7 @@ double lagrangePolynomialValue(long double* coefficients, int numberOfCoefficien
     return result;
 }
 
-void lagrangeInterpolation(double x[],double y[],int stepsPerGap)
-{
+void lagrangeInterpolation(double* x, double* y,int stepsPerGap){
     long double tmpX, tmpY, h;
     h = (x[1]-x[0]) / stepsPerGap;
     for(int i = 0; i <= ( stepsPerGap * (NodesAmount-1) ); i++)
@@ -180,8 +177,7 @@ void getNewtonCoefficients(double* x, double* y){
         newtonCoefficients[i] = newtonCoeffs[i-1][0];
     }
 }
-double newtonPolynomialValue(double* coefficients, double* nodesX, int summandsAmount, double x)
-{
+double newtonPolynomialValue(double* coefficients, double* nodesX, int summandsAmount, double x){
     double p = 1;
     double result = 0.0;
     for (int i = 0; i < summandsAmount; i++)
@@ -190,10 +186,8 @@ double newtonPolynomialValue(double* coefficients, double* nodesX, int summandsA
         p = p * (x - nodesX[i]);
     }
     return result;
-
 }
-void newtonInterpolation(double* x, double* y, int stepsPerGap)
-{
+void newtonInterpolation(double* x, double* y, int stepsPerGap){
     double tmpX, tmpY, h;
     h = (x[1]-x[0]) / stepsPerGap;
     for(int i = 0; i <= (stepsPerGap * (NodesAmount-1) ); i++)
