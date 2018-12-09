@@ -31,7 +31,6 @@ void randNodes(double* x ,double* y ){
         x[i+1] = x[i] + InterNodeGap;
         y[i+1] = doubleRandRange(-100, 100);
     }
-
 }
 //-------------------------------------------------------------------------------------GSL INTERPOLATION----------------------------------------------------------------------------------
 void gslInterpolation(double* x, double* y, int stepsPerGap){
